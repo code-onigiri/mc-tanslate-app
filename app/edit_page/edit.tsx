@@ -221,28 +221,45 @@ function EditPage() {
     const handleReplaceWithConfirmation = (searchText: string, replaceText: string) => {
         if (!targetData || !searchText || !replaceText) return;
         
-        startReplacement(searchText, replaceText, filteredKeys, targetData, isRegexSearch);
+        // 置換作業を開始し、最初のキーを取得
+        const firstKey = startReplacement(searchText, replaceText, filteredKeys, targetData, isRegexSearch);
         
-        // 最初のキーを選択して編集画面で開く
-        setTimeout(() => {
-            if (replaceInfo?.keys[0]) {
-                handleSelectKey(replaceInfo.keys[0]);
-            }
-        }, 50);
+        // 最初のキーが有効ならそれを選択
+        if (firstKey && typeof firstKey === 'string') {
+            handleSelectKey(firstKey);
+        }
     };
 
     const handleApplyReplacement = () => {
-        if (!replaceInfo || !targetData || !selectedKey) return;
+        if (!targetData || !selectedKey) return;
         
+        // 現在の置換を適用
         const { updatedData, newValue } = applyCurrentReplacement(targetData, selectedKey, isRegexSearch);
         
+        // データを更新
         setTargetData(updatedData);
         setEditedValue(newValue);
         
-        if (replaceInfo?.keys[replaceInfo.currentIndex + 1]) {
+        // 次の置換対象に進む
+        const nextKey = skipCurrentReplacement();
+        
+        // 次のキーがあれば選択
+        if (nextKey && typeof nextKey === 'string') {
             setTimeout(() => {
-                handleSelectKey(replaceInfo.keys[replaceInfo.currentIndex + 1]);
-            }, 50);
+                handleSelectKey(nextKey);
+            }, 10);
+        }
+    };
+
+    const handleSkipReplacement = () => {
+        // 現在の置換をスキップして次に進む
+        const nextKey = skipCurrentReplacement();
+        
+        // 次のキーがあれば選択
+        if (nextKey && typeof nextKey === 'string') {
+            setTimeout(() => {
+                handleSelectKey(nextKey);
+            }, 10);
         }
     };
 
@@ -307,7 +324,7 @@ function EditPage() {
                             isReplaceMode={isReplaceMode}
                             replaceInfo={replaceInfo}
                             onApplyReplacement={handleApplyReplacement}
-                            onSkipReplacement={skipCurrentReplacement}
+                            onSkipReplacement={handleSkipReplacement}
                             onCancelReplacement={cancelReplacement}
                         />
                         

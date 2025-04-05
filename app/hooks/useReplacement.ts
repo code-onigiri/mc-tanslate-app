@@ -13,11 +13,11 @@ interface ReplacementInfo {
 interface UseReplacementReturn {
   isReplaceMode: boolean;
   replaceInfo: ReplacementInfo | null;
-  startReplacement: (searchText: string, replaceText: string, filteredKeys: string[], targetData: LanguageData, isRegex: boolean) => void;
+  startReplacement: (searchText: string, replaceText: string, filteredKeys: string[], targetData: LanguageData, isRegex: boolean) => string | null;
   replaceAll: (searchText: string, replaceText: string, filteredKeys: string[], targetData: LanguageData, isRegex: boolean) => LanguageData;
   applyCurrentReplacement: (targetData: LanguageData, selectedKey: string, isRegex: boolean) => { updatedData: LanguageData, newValue: string };
-  skipCurrentReplacement: () => void;
-  nextReplacement: () => void;
+  skipCurrentReplacement: () => string | null;
+  getCurrentReplacementKey: () => string | null;
   cancelReplacement: () => void;
 }
 
@@ -28,6 +28,14 @@ export function useReplacement(): UseReplacementReturn {
   const [isReplaceMode, setIsReplaceMode] = useState(false);
   const [replaceInfo, setReplaceInfo] = useState<ReplacementInfo | null>(null);
 
+  // 現在の置換キーを取得
+  const getCurrentReplacementKey = (): string | null => {
+    if (!replaceInfo || replaceInfo.currentIndex >= replaceInfo.keys.length) {
+      return null;
+    }
+    return replaceInfo.keys[replaceInfo.currentIndex];
+  };
+
   // 置換作業を開始する
   const startReplacement = (
     searchText: string, 
@@ -35,7 +43,7 @@ export function useReplacement(): UseReplacementReturn {
     filteredKeys: string[], 
     targetData: LanguageData,
     isRegex: boolean
-  ) => {
+  ): string | null => {
     // 置換対象のキーを見つける
     const keysToReplace = filteredKeys.filter(key => {
       if (!(key in targetData)) return false;
@@ -54,7 +62,7 @@ export function useReplacement(): UseReplacementReturn {
     
     if (keysToReplace.length === 0) {
       alert('置換対象が見つかりませんでした。');
-      return;
+      return null;
     }
     
     // 置換情報を設定
@@ -68,6 +76,9 @@ export function useReplacement(): UseReplacementReturn {
     
     // 置換モードをアクティブに
     setIsReplaceMode(true);
+    
+    // 最初の置換対象キーを返す
+    return keysToReplace[0] || null;
   };
 
   // 一括置換を実行
@@ -80,6 +91,7 @@ export function useReplacement(): UseReplacementReturn {
   ): LanguageData => {
     // 新しいtargetDataオブジェクトを作成して更新
     const updatedTargetData = { ...targetData };
+    let replacementCount = 0;
     
     // 検索対象のキーに対して置換を実行
     filteredKeys.forEach(key => {
@@ -87,10 +99,19 @@ export function useReplacement(): UseReplacementReturn {
         const value = updatedTargetData[key];
         
         if (isRegex) {
-          updatedTargetData[key] = replaceWithRegex(value, searchText, replaceText);
+          try {
+            const regex = new RegExp(searchText, 'g');
+            if (regex.test(value)) {
+              updatedTargetData[key] = value.replace(regex, replaceText);
+              replacementCount++;
+            }
+          } catch (error) {
+            // 正規表現エラーは無視
+          }
         } else {
           if (value.includes(searchText)) {
             updatedTargetData[key] = value.split(searchText).join(replaceText);
+            replacementCount++;
           }
         }
       }
@@ -125,15 +146,12 @@ export function useReplacement(): UseReplacementReturn {
       [selectedKey]: newValue
     };
     
-    // 次の置換項目へ進む
-    nextReplacement();
-    
     return { updatedData, newValue };
   };
 
   // 次の置換項目に進む
-  const nextReplacement = () => {
-    if (!replaceInfo) return;
+  const nextReplacement = (): string | null => {
+    if (!replaceInfo) return null;
     
     const { keys, currentIndex } = replaceInfo;
     
@@ -145,7 +163,7 @@ export function useReplacement(): UseReplacementReturn {
       alert('すべての置換が完了しました。');
       setIsReplaceMode(false);
       setReplaceInfo(null);
-      return;
+      return null;
     }
     
     // 次のキーに進む
@@ -153,11 +171,13 @@ export function useReplacement(): UseReplacementReturn {
       ...replaceInfo,
       currentIndex: nextIndex
     });
+    
+    return keys[nextIndex] || null;
   };
 
   // 現在の置換をスキップ
-  const skipCurrentReplacement = () => {
-    nextReplacement();
+  const skipCurrentReplacement = (): string | null => {
+    return nextReplacement();
   };
 
   // 置換をキャンセル
@@ -173,7 +193,7 @@ export function useReplacement(): UseReplacementReturn {
     replaceAll,
     applyCurrentReplacement,
     skipCurrentReplacement,
-    nextReplacement,
+    getCurrentReplacementKey,
     cancelReplacement
   };
 }

@@ -14,11 +14,13 @@
   "dependencies": {
     "@react-router/node": "^7.3.0",
     "@react-router/serve": "^7.3.0",
+    "@remix-run/router": "^1.23.0",
     "@types/react-window": "^1.8.8",
     "isbot": "^5.1.17",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router": "^7.3.0",
+    "react-router": "^7.5.0",
+    "react-router-dom": "^7.5.0",
     "react-window": "^1.8.11"
   },
   "devDependencies": {
@@ -32,6 +34,7 @@
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "@types/react-router": "^5.1.20",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.3.4",
     "bun-types": "latest",
     "happy-dom": "^13.3.8",

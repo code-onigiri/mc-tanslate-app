@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { LanguageData } from '../util/load/fileloader';
 import { highlightText, highlightRegexMatches } from '../util/highlight';
 import { hasContent } from '../util/stringUtils';
+import React from 'react';
 
 interface TranslationEditorProps {
   selectedKey: string | null;
@@ -56,7 +57,18 @@ export function TranslationEditor({
     
     // 置換後のテキスト
     const { searchText, replaceText } = replaceInfo;
-    const afterValue = currentValue.split(searchText).join(replaceText);
+    
+    let afterValue: string;
+    if (isRegexSearch) {
+      try {
+        const regex = new RegExp(searchText, 'g');
+        afterValue = currentValue.replace(regex, replaceText);
+      } catch (error) {
+        afterValue = currentValue;
+      }
+    } else {
+      afterValue = currentValue.split(searchText).join(replaceText);
+    }
     
     return {
       before: currentValue,
@@ -202,9 +214,31 @@ export function TranslationEditor({
                 <div>
                   <div className="text-xs font-medium mb-1 text-gray-700 dark:text-gray-300">置換前:</div>
                   <div className="p-2 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 whitespace-pre-wrap text-sm min-h-[5rem] max-h-[10rem] overflow-auto">
-                    {hasContent(searchTerm) && replaceInfo
-                      ? highlightText(replacedText.before, replaceInfo.searchText, 'bg-red-200 dark:bg-red-900/50 text-red-900 dark:text-red-200')
-                      : replacedText.before}
+                    {replaceInfo ? (
+                      isRegexSearch ? (
+                        <span dangerouslySetInnerHTML={{
+                          __html: replacedText.before.replace(
+                            new RegExp(`(${replaceInfo.searchText})`, 'g'),
+                            '<span class="bg-red-200 dark:bg-red-900/50 text-red-900 dark:text-red-200">$1</span>'
+                          )
+                        }} />
+                      ) : (
+                        <>
+                          {replacedText.before.split(replaceInfo.searchText).map((part, i, arr) => (
+                            <React.Fragment key={i}>
+                              {part}
+                              {i < arr.length - 1 && (
+                                <span className="bg-red-200 dark:bg-red-900/50 text-red-900 dark:text-red-200">
+                                  {replaceInfo.searchText}
+                                </span>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </>
+                      )
+                    ) : (
+                      replacedText.before
+                    )}
                   </div>
                 </div>
                 <div>
