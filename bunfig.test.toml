@@ -1,0 +1,9 @@
+[test]
+# DOM環境を使用するためにhappy-domを指定
+environment = "happy-dom"
+# テストファイルのパターン
+pattern = "**/*.test.{ts,tsx,js,jsx}"
+# セットアップファイル
+setup = "./test/setup.ts"
+# タイムアウト設定（ミリ秒）
+timeout = 10000
