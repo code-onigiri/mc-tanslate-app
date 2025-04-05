@@ -53,3 +53,82 @@ export function highlightText(
     return <span>{text}</span>;
   }
 }
+
+/**
+ * 正規表現に一致するテキストを強調表示するためのユーティリティ
+ * @param text 対象のテキスト
+ * @param regexPattern 正規表現のパターン文字列
+ * @param highlightClass 強調表示用のCSS クラス
+ * @returns React要素
+ */
+export function highlightRegexMatches(
+  text: string,
+  regexPattern: string,
+  highlightClass: string = 'bg-yellow-200 dark:bg-yellow-900 text-gray-900 dark:text-yellow-100'
+): React.ReactElement {
+  if (!text) {
+    return <span></span>;
+  }
+  
+  if (!regexPattern || regexPattern.trim() === '') {
+    return <span>{text}</span>;
+  }
+
+  try {
+    const regex = new RegExp(`(${regexPattern})`, 'g');
+    
+    // 正規表現で一致した部分と一致していない部分に分割
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      // 一致箇所の前にある非一致テキストを追加
+      if (match.index > lastIndex) {
+        parts.push({
+          text: text.substring(lastIndex, match.index),
+          highlight: false
+        });
+      }
+      
+      // 一致箇所を追加
+      parts.push({
+        text: match[0],
+        highlight: true
+      });
+      
+      lastIndex = match.index + match[0].length;
+      
+      // 無限ループを防止
+      if (match[0].length === 0) {
+        regex.lastIndex += 1;
+      }
+    }
+    
+    // 最後の一致箇所以降のテキストを追加
+    if (lastIndex < text.length) {
+      parts.push({
+        text: text.substring(lastIndex),
+        highlight: false
+      });
+    }
+    
+    return (
+      <span>
+        {parts.map((part, i) => (
+          part.highlight ? (
+            <span key={i} className={highlightClass}>
+              {part.text}
+            </span>
+          ) : (
+            <span key={i}>{part.text}</span>
+          )
+        ))}
+      </span>
+    );
+  } catch (error) {
+    // エラーが発生した場合は元のテキストをそのまま返す
+    console.error('正規表現のハイライト処理に失敗しました:', error);
+    return <span>{text}</span>;
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { LanguageData } from '../util/load/fileloader';
-import { highlightText } from '../util/highlight';
+import { highlightText, highlightRegexMatches } from '../util/highlight';
 import { hasContent } from '../util/stringUtils';
 
 interface TranslationEditorProps {
@@ -12,6 +12,7 @@ interface TranslationEditorProps {
   onCopyAllSourceTexts: () => void;
   onCopyCurrentKeySource: () => void;
   searchTerm?: string;
+  isRegexSearch?: boolean;
   // 置換モード関連のプロパティ
   isReplaceMode?: boolean;
   replaceInfo?: {
@@ -35,6 +36,7 @@ export function TranslationEditor({
   onCopyAllSourceTexts,
   onCopyCurrentKeySource,
   searchTerm = '',
+  isRegexSearch = false,
   // 置換モード関連
   isReplaceMode = false,
   replaceInfo = null,
@@ -94,7 +96,7 @@ export function TranslationEditor({
       <div className="flex-1 border border-gray-200 dark:border-gray-700 rounded p-4 overflow-auto bg-white dark:bg-gray-800 relative">
         <div className="flex flex-col justify-center items-center h-full">
           <p className="text-gray-500 dark:text-gray-400 mb-4">
-            右側のリストからキーを選択してください
+            リストからキーを選択してください
           </p>
           <button 
             onClick={handleCopyAllClick}
@@ -138,7 +140,9 @@ export function TranslationEditor({
           <h3 className="text-lg font-semibold">
             選択中のキー: 
             <span className="ml-1">
-              {hasContent(searchTerm) ? highlightText(selectedKey, searchTerm) : selectedKey}
+              {hasContent(searchTerm) 
+                ? (isRegexSearch ? highlightRegexMatches(selectedKey, searchTerm) : highlightText(selectedKey, searchTerm))
+                : selectedKey}
             </span>
             {isReplaceMode && replaceInfo && (
               <span className="ml-2 text-sm text-amber-600 dark:text-amber-400">
@@ -179,7 +183,11 @@ export function TranslationEditor({
         <div className="mb-4">
           <label className="block font-medium mb-2">原文:</label>
           <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded min-h-[5rem] whitespace-pre-wrap">
-            {hasContent(searchTerm) ? highlightText(sourceData[selectedKey], searchTerm) : sourceData[selectedKey]}
+            {hasContent(searchTerm) 
+              ? (isRegexSearch 
+                ? highlightRegexMatches(sourceData[selectedKey], searchTerm) 
+                : highlightText(sourceData[selectedKey], searchTerm))
+              : sourceData[selectedKey]}
           </div>
         </div>
 
@@ -276,7 +284,7 @@ export function TranslationEditor({
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 111.414 1.414L11.414 10l4.293 4.293a1 1 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 011.414 0L10 8.586l4.293-4.293a1 1 111.414 1.414L11.414 10l4.293 4.293a1 1 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 01-1.414-1.414L8.586 10 4.293 5.707a1 1 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
             </div>

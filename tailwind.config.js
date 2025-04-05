@@ -4,6 +4,8 @@ export default {
     "./index.html",
     "./app/**/*.{js,ts,jsx,tsx}",
   ],
+  // Tailwindの標準的なdarkModeクラスとカスタム属性の両方をサポート
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
