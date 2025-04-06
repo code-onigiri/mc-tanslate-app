@@ -1,16 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { RouterProvider } from '@react-router';
-import router from './routes';
-import './app.css';
-import { initializeTheme, setupThemeListener } from './util/themeUtils';
-
-// 初期テーマを設定
-initializeTheme();
-setupThemeListener();
+import App from './App';
+import './global.css'; // グローバルCSSをインポート
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <App />
   </React.StrictMode>
 );

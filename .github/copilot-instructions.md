@@ -1,3 +1,3 @@
 私達はReactを用いてminecraftの翻訳ファイルを編集することができるファイルを作っています。
 作業をする翻訳ファイルには`key`と`value`があり、`value`を翻訳していきます。
-私達はいまbunとviteそしてtailwindcssを使っています。
+私達はいまbunとvite、React-Routerv7そしてtailwindcssを使っています。

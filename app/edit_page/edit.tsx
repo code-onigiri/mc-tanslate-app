@@ -6,6 +6,7 @@ import { loadLanguageData, saveLanguageData, type LanguageData } from '../util/l
 import { useTranslationFilters } from '../hooks/useTranslationFilters';
 import { useTheme } from '../hooks/useTheme';
 import { useReplacement } from '../hooks/useReplacement';
+import { useAnimation } from '../hooks/useAnimation';
 import { SettingsDropdown } from '../components/SettingsDropdown';
 
 // フィルタータイプの定義
@@ -27,10 +28,13 @@ function EditPage() {
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [isRegexSearch, setIsRegexSearch] = useState(false);
     
-    // UI設定の状態
+    // UI設定とアニメーションの状態
     const [showSettings, setShowSettings] = useState(false);
+    const [showFileUploader, setShowFileUploader] = useState(false);
+    const [isSettingsAnimating, setIsSettingsAnimating] = useState(false);
     const settingsRef = useRef<HTMLDivElement>(null);
     const [listPosition, setListPosition] = useState<'left' | 'right'>('right');
+    const [clickedButton, setClickedButton] = useState<string | null>(null);
     
     // カスタムフックの使用
     const [theme, handleThemeChange] = useTheme();
@@ -43,6 +47,14 @@ function EditPage() {
         skipCurrentReplacement,
         cancelReplacement
     } = useReplacement();
+    const {
+        getAnimationClass,
+        triggerClickAnimation,
+        triggerSlideFadeInAnimation,
+        triggerSlideFadeOutAnimation,
+        triggerSlideDownAnimation,
+        triggerSlideUpAnimation
+    } = useAnimation();
     
     // フィルタリングロジックをカスタムフックに委譲
     const filteredKeys = useTranslationFilters(sourceData, targetData, searchTerm, filterType, isRegexSearch);
@@ -51,7 +63,8 @@ function EditPage() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
-                setShowSettings(false);
+                // アニメーション付きで閉じる
+                handleCloseSettings();
             }
         };
 
@@ -70,7 +83,71 @@ function EditPage() {
         if (savedListPosition) {
             setListPosition(savedListPosition);
         }
+        
+        // アプリ起動時に即座にファイルアップローダーを表示
+        setShowFileUploader(true);
     }, []);
+
+    // ファイルアップローダーが表示された後のアニメーション処理
+    useEffect(() => {
+        if (showFileUploader) {
+            // DOM更新後すぐにアニメーションを準備
+            requestAnimationFrame(() => {
+                const fileUploaderElement = document.getElementById('file-uploader');
+                if (fileUploaderElement) {
+                    // 最初は透明にしておく
+                    fileUploaderElement.style.opacity = '0';
+                    
+                    // 次のフレームでアニメーションを実行（ダブルrAFパターン）
+                    requestAnimationFrame(() => {
+                        triggerSlideFadeInAnimation('file-uploader', () => {
+                            // アニメーション完了後に確実に表示されるようにする
+                            if (fileUploaderElement) {
+                                fileUploaderElement.style.opacity = '1';
+                            }
+                        });
+                    });
+                }
+            });
+        }
+    }, [showFileUploader, triggerSlideFadeInAnimation]);
+    
+    // クリックアニメーションを追加する関数
+    const handleButtonClick = (buttonId: string, callback: () => void) => {
+        setClickedButton(buttonId);
+        
+        // アニメーション後に実行する処理
+        setTimeout(() => {
+            setClickedButton(null);
+            callback();
+        }, 150);
+    };
+
+    // 設定メニューを開閉する
+    const handleOpenSettings = () => {
+        triggerClickAnimation('settings-button', () => {
+            if (showSettings) {
+                // すでに開いている場合は閉じる
+                handleCloseSettings();
+            } else {
+                // 閉じている場合は開く
+                setIsSettingsAnimating(true);
+                setShowSettings(true);
+            }
+        });
+    };
+    
+    // 設定メニューを閉じる
+    const handleCloseSettings = () => {
+        // メニューが表示されている場合のみアニメーションを実行
+        if (showSettings) {
+            setIsSettingsAnimating(true);
+            triggerSlideFadeOutAnimation('settings-menu', () => {
+                setIsSettingsAnimating(false);
+                setShowSettings(false);
+            });
+        }
+    };
     
     const handleListPositionChange = (position: 'left' | 'right') => {
         setListPosition(position);
@@ -267,13 +344,13 @@ function EditPage() {
         <div className="flex flex-col h-screen p-4 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
             <header className="mb-1 relative">
                 <div className="flex justify-between items-center mb-1">
-                    <h1 className="text-2xl font-bold">Minecraft 翻訳エディタ</h1>
+                    <h1 className="text-2xl font-bold animate-fade-in">Minecraft 翻訳エディタ</h1>
                     
                     {/* 設定ボタン */}
                     <div className="relative" ref={settingsRef}>
                         <button
-                            onClick={() => setShowSettings(!showSettings)}
-                            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            onClick={handleOpenSettings}
+                            className={`p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${getAnimationClass('settings-button')}`}
                             aria-label="設定"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -282,34 +359,55 @@ function EditPage() {
                             </svg>
                         </button>
                         
-                        <SettingsDropdown 
-                            darkMode={theme}
-                            onThemeChange={handleThemeChange}
-                            listPosition={listPosition}
-                            onListPositionChange={handleListPositionChange}
-                            isOpen={showSettings}
-                            onClose={() => setShowSettings(false)}
-                        />
+                        {/* 設定ドロップダウンメニュー */}
+                        {showSettings && (
+                            <SettingsDropdown 
+                                darkMode={theme}
+                                onThemeChange={handleThemeChange}
+                                listPosition={listPosition}
+                                onListPositionChange={handleListPositionChange}
+                                onClose={handleCloseSettings}
+                                animationId="settings-menu"
+                                getAnimationClass={getAnimationClass}
+                                triggerClickAnimation={triggerClickAnimation}
+                                triggerSlideFadeInAnimation={triggerSlideFadeInAnimation}
+                                isAnimating={isSettingsAnimating}
+                                setIsAnimating={setIsSettingsAnimating}
+                            />
+                        )}
                     </div>
                 </div>
                 
-                <FileUploader 
-                    onSourceFileSelect={handleSourceFileChange}
-                    onTargetFileSelect={handleTargetFileChange}
-                    onCreateNewTarget={() => handleCreateNewTarget(fileFormat)}
-                    isLoading={isLoading}
-                    selectedTargetFileName={targetFileName}
-                    onFormatChange={handleFormatChange}
-                    fileFormat={fileFormat}
-                />
+                {showFileUploader && (
+                    <div id="file-uploader" className={`transition-opacity duration-200 ${getAnimationClass('file-uploader')}`}>
+                        <FileUploader 
+                            onSourceFileSelect={handleSourceFileChange}
+                            onTargetFileSelect={handleTargetFileChange}
+                            onCreateNewTarget={() => handleCreateNewTarget(fileFormat)}
+                            isLoading={isLoading}
+                            selectedTargetFileName={targetFileName}
+                            onFormatChange={handleFormatChange}
+                            fileFormat={fileFormat}
+                            triggerClickAnimation={triggerClickAnimation}
+                        />
+                    </div>
+                )}
             </header>
 
-            {isLoading && <div className="bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-2 rounded mb-1">ファイルを読み込み中...</div>}
-            {error && <div className="bg-red-50 dark:bg-red-900 text-red-800 dark:text-red-200 p-2 rounded mb-1">{error}</div>}
+            {isLoading && 
+                <div className="bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-2 rounded mb-1 animate-pulse">
+                    ファイルを読み込み中...
+                </div>
+            }
+            {error && 
+                <div className="bg-red-50 dark:bg-red-900 text-red-800 dark:text-red-200 p-2 rounded mb-1 animate-shake">
+                    {error}
+                </div>
+            }
 
             {sourceData && targetData ? (
-                <main className="flex-1 overflow-hidden flex flex-col h-full">
-                    <div className={`flex h-full gap-4 ${listPosition === 'left' ? 'flex-row-reverse' : ''}`}>
+                <main className="flex-1 overflow-hidden flex flex-col h-full animate-fade-in">
+                    <div className={`flex h-full gap-4 ${listPosition === 'left' ? 'flex-row-reverse' : ''} transition-all duration-300`}>
                         {/* 左側: 翻訳編集エリア */}
                         <TranslationEditor 
                             selectedKey={selectedKey}
@@ -352,7 +450,7 @@ function EditPage() {
                     </div>
                 </main>
             ) : (
-                <div className="flex justify-center items-center h-[60vh] text-lg text-gray-500 dark:text-gray-400">
+                <div className="flex justify-center items-center h-[60vh] text-lg text-gray-500 dark:text-gray-400 animate-fade-in">
                     翻訳元と翻訳先のJSONまたは.langファイルを選択してください。
                 </div>
             )}

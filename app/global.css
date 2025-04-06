@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+@layer base {
+  html,
+  body {
+    @apply h-full m-0 p-0 overflow-hidden;
+  }
+  
+  #root {
+    @apply h-full;
+  }
+}
+
+/* アニメーション用の基本定義 */
+@keyframes click {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes slide-fade-in {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-20px);
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-fade-out {
+  0% { 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+  100% { 
+    opacity: 0; 
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes slide-down {
+  0% { 
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+  100% { 
+    max-height: 500px;
+    opacity: 1;
+    overflow: hidden;
+  }
+}
+
+@keyframes slide-up {
+  0% { 
+    max-height: 500px;
+    opacity: 1;
+    overflow: hidden;
+  }
+  100% { 
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+}
+
+/* アニメーションクラス */
+.animate-click {
+  animation: click 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  will-change: transform;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity;
+}
+
+.animate-fade-out {
+  animation: fade-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity;
+}
+
+.animate-slide-fade-in {
+  animation: slide-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-slide-fade-out {
+  animation: slide-fade-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+  will-change: max-height, opacity;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-in forwards;
+  will-change: max-height, opacity;
+}
+
+/* アニメーションによる要素の振動を防ぐためのバックフェイスのビジビリティ設定 */
+.transform-hardware {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* アニメーション中に要素が非表示になるのを防ぐ */
+.opacity-override {
+  opacity: 1 !important;
+}
