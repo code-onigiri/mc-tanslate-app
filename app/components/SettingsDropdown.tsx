@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 
 interface SettingsDropdownProps {
   darkMode: 'system' | 'light' | 'dark';
@@ -28,67 +28,45 @@ export function SettingsDropdown({
   setIsAnimating
 }: SettingsDropdownProps) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const hasAnimatedRef = useRef(false); // アニメーションが既に実行されたかを追跡
-
-  // コンポーネントのマウント時の処理
-  useEffect(() => {
-    // 1. ハードウェアアクセラレーションの適用
-    if (menuRef.current) {
-      menuRef.current.style.willChange = 'transform, opacity';
-      menuRef.current.style.transform = 'translateZ(0)';
-    }
-    
-    // 2. アニメーション開始
-    if (!hasAnimatedRef.current) {
-      hasAnimatedRef.current = true;
-      
-      // 次のフレームでアニメーションを開始（少し遅延を入れる）
-      setTimeout(() => {
-        const element = document.getElementById(animationId);
-        if (element) {
-          // 最初は非表示に
-          element.style.opacity = '0';
-          
-          // アニメーション実行
-          requestAnimationFrame(() => {
-            triggerSlideFadeInAnimation(animationId, () => {
-              setIsAnimating(false);
-              
-              // アニメーション完了後に確実に表示されるようにする
-              if (element) {
-                element.style.opacity = '1';
-              }
-            });
-          });
-        }
-      }, 20);
-    }
-    
-    // クリーンアップ関数
-    return () => {
-      hasAnimatedRef.current = false;
-    };
-  }, [animationId, triggerSlideFadeInAnimation, setIsAnimating]);
+  const [isCloseBtnHovered, setIsCloseBtnHovered] = useState(false);
 
   // 閉じるボタンのクリックアニメーション
   const handleCloseClick = () => {
     triggerClickAnimation('close-settings-button', onClose);
   };
 
+  // 閉じるボタンのホバー状態管理
+  const handleMouseEnter = () => {
+    setIsCloseBtnHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsCloseBtnHovered(false);
+  };
+
   return (
     <div 
       id={animationId}
       ref={menuRef}
-      className={`absolute right-0 top-full mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg 
-                 border border-gray-200 dark:border-gray-700 z-50 py-2 opacity-0 transition-opacity duration-200 ${getAnimationClass(animationId)}`}
-      style={{ transformOrigin: 'top right' }}
+      className="absolute right-0 top-0 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg 
+                 border border-gray-200 dark:border-gray-700 z-50 py-2 transition-all duration-300"
+      style={{ 
+        transformOrigin: 'top right',
+        animation: 'fadeIn 0.2s ease-in-out'
+      }}
     >
       <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
           <h3 className="font-medium text-gray-800 dark:text-gray-200">全体設定</h3>
           <button
+            id="close-settings-button"
             onClick={handleCloseClick}
-            className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${getAnimationClass('close-settings-button')}`}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 ease-in-out"
+            style={{
+              transform: isCloseBtnHovered ? 'scale(1.1) translateX(-2px)' : 'scale(1)',
+            }}
             aria-label="閉じる"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

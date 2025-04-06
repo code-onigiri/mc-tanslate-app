@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { FileUploader } from '../components/FileUploader';
 import { TranslationEditor } from '../components/TranslationEditor';
 import { TranslationList } from '../components/TranslationList';
 import { loadLanguageData, saveLanguageData, type LanguageData } from '../util/load/fileloader';
@@ -8,6 +7,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useReplacement } from '../hooks/useReplacement';
 import { useAnimation } from '../hooks/useAnimation';
 import { SettingsDropdown } from '../components/SettingsDropdown';
+import { HamburgerMenu } from '../components/HamburgerMenu';
 
 // フィルタータイプの定義
 export type FilterType = 'all' | 'translated' | 'untranslated';
@@ -30,7 +30,6 @@ function EditPage() {
     
     // UI設定とアニメーションの状態
     const [showSettings, setShowSettings] = useState(false);
-    const [showFileUploader, setShowFileUploader] = useState(false);
     const [isSettingsAnimating, setIsSettingsAnimating] = useState(false);
     const settingsRef = useRef<HTMLDivElement>(null);
     const [listPosition, setListPosition] = useState<'left' | 'right'>('right');
@@ -83,34 +82,7 @@ function EditPage() {
         if (savedListPosition) {
             setListPosition(savedListPosition);
         }
-        
-        // アプリ起動時に即座にファイルアップローダーを表示
-        setShowFileUploader(true);
     }, []);
-
-    // ファイルアップローダーが表示された後のアニメーション処理
-    useEffect(() => {
-        if (showFileUploader) {
-            // DOM更新後すぐにアニメーションを準備
-            requestAnimationFrame(() => {
-                const fileUploaderElement = document.getElementById('file-uploader');
-                if (fileUploaderElement) {
-                    // 最初は透明にしておく
-                    fileUploaderElement.style.opacity = '0';
-                    
-                    // 次のフレームでアニメーションを実行（ダブルrAFパターン）
-                    requestAnimationFrame(() => {
-                        triggerSlideFadeInAnimation('file-uploader', () => {
-                            // アニメーション完了後に確実に表示されるようにする
-                            if (fileUploaderElement) {
-                                fileUploaderElement.style.opacity = '1';
-                            }
-                        });
-                    });
-                }
-            });
-        }
-    }, [showFileUploader, triggerSlideFadeInAnimation]);
     
     // クリックアニメーションを追加する関数
     const handleButtonClick = (buttonId: string, callback: () => void) => {
@@ -344,9 +316,26 @@ function EditPage() {
         <div className="flex flex-col h-screen p-4 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
             <header className="mb-1 relative">
                 <div className="flex justify-between items-center mb-1">
-                    <h1 className="text-2xl font-bold animate-fade-in">Minecraft 翻訳エディタ</h1>
+                    <div className="flex items-center gap-3">
+                        {/* ハンバーガーメニュー（ファイルアップローダーを含む） - 左側に配置 */}
+                        <HamburgerMenu
+                            onSourceFileSelect={handleSourceFileChange}
+                            onTargetFileSelect={handleTargetFileChange}
+                            onCreateNewTarget={() => handleCreateNewTarget(fileFormat)}
+                            isLoading={isLoading}
+                            selectedTargetFileName={targetFileName}
+                            fileFormat={fileFormat}
+                            onFormatChange={handleFormatChange}
+                            triggerClickAnimation={triggerClickAnimation}
+                            triggerSlideFadeOutAnimation={triggerSlideFadeOutAnimation}
+                            triggerSlideFadeInAnimation={triggerSlideFadeInAnimation}
+                            getAnimationClass={getAnimationClass}
+                        />
+                        
+                        <h1 className="text-2xl font-bold animate-fade-in ml-2">Minecraft 翻訳エディタ</h1>
+                    </div>
                     
-                    {/* 設定ボタン */}
+                    {/* 設定ボタン - 右側に配置 */}
                     <div className="relative" ref={settingsRef}>
                         <button
                             onClick={handleOpenSettings}
@@ -377,21 +366,6 @@ function EditPage() {
                         )}
                     </div>
                 </div>
-                
-                {showFileUploader && (
-                    <div id="file-uploader" className={`transition-opacity duration-200 ${getAnimationClass('file-uploader')}`}>
-                        <FileUploader 
-                            onSourceFileSelect={handleSourceFileChange}
-                            onTargetFileSelect={handleTargetFileChange}
-                            onCreateNewTarget={() => handleCreateNewTarget(fileFormat)}
-                            isLoading={isLoading}
-                            selectedTargetFileName={targetFileName}
-                            onFormatChange={handleFormatChange}
-                            fileFormat={fileFormat}
-                            triggerClickAnimation={triggerClickAnimation}
-                        />
-                    </div>
-                )}
             </header>
 
             {isLoading && 

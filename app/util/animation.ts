@@ -1,5 +1,5 @@
 /**
- * アニメーションのパフォーマンスを最適化するためのヘルパー関数
+ * アニメーション関連のユーティリティ関数
  */
 
 /**
@@ -43,14 +43,6 @@ export function nextFrame(callback: () => void) {
  */
 export function addAnimationClass(element: HTMLElement | null, className: string) {
   if (!element) return;
-  
-  // Classがすでに存在している場合は一度削除
-  element.classList.remove(className);
-  
-  // フォースリフロー（再計算を強制）
-  void element.offsetWidth;
-  
-  // クラスを追加
   element.classList.add(className);
 }
 
@@ -64,17 +56,30 @@ export function setVisibilityWithAnimation(elementId: string, isVisible: boolean
   if (!element) return;
   
   if (isVisible) {
-    // 要素を非表示にしてからアニメーションで表示
+    // 表示の場合：フェードインアニメーション
     element.style.opacity = '0';
+    element.style.display = '';
+    
+    // 次のフレームでアニメーション開始
     requestAnimationFrame(() => {
-      element.style.transition = 'opacity 300ms ease-in-out';
-      requestAnimationFrame(() => {
-        element.style.opacity = '1';
-      });
+      element.classList.add('animate-fade-in');
+      element.style.opacity = '1';
+      
+      // アニメーション終了時にクラスを削除
+      element.addEventListener('animationend', function handler() {
+        element.classList.remove('animate-fade-in');
+        element.removeEventListener('animationend', handler);
+      }, { once: true });
     });
   } else {
-    // 要素をフェードアウト
-    element.style.transition = 'opacity 250ms ease-in-out';
-    element.style.opacity = '0';
+    // 非表示の場合：フェードアウトアニメーション
+    element.classList.add('animate-fade-out');
+    
+    // アニメーション終了後に要素を非表示
+    element.addEventListener('animationend', function handler() {
+      element.style.display = 'none';
+      element.classList.remove('animate-fade-out');
+      element.removeEventListener('animationend', handler);
+    }, { once: true });
   }
 }

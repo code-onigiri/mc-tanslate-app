@@ -1,10 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { 
-  applyHardwareAcceleration, 
-  resetHardwareAcceleration,
-  nextFrame,
-  addAnimationClass
-} from '../util/animation';
+import { applyHardwareAcceleration, resetHardwareAcceleration } from '../util/animation';
 
 /**
  * アニメーションクラスを動的に追加・削除するためのフック
@@ -33,16 +28,11 @@ export function useAnimation() {
 
   /**
    * アニメーションを開始する関数
-   * @param id 要素の一意のID
-   * @param animationClass 適用するアニメーションのクラス名
-   * @param duration アニメーションの持続時間（ミリ秒）
-   * @param callback アニメーション終了後に実行するコールバック関数
-   * @param forceAnimation すでにアニメーションが適用されていても強制的に適用するかどうか
    */
   const triggerAnimation = useCallback((
     id: string, 
     animationClass: string, 
-    duration = 250, // デフォルト時間を短縮
+    duration = 250,
     callback?: () => void,
     forceAnimation = false
   ) => {
@@ -59,6 +49,10 @@ export function useAnimation() {
     
     // 対象の要素を取得
     const element = document.getElementById(id);
+    if (element) {
+      // ハードウェアアクセラレーションを適用
+      applyHardwareAcceleration(element);
+    }
     
     // アニメーションを開始する前に一度ステート更新
     setAnimations(prev => {
@@ -67,93 +61,78 @@ export function useAnimation() {
       return newState;
     });
     
-    // フェードイン/スライドフェードインアニメーションの場合のDOM直接操作
-    if (animationClass.includes('fade-in') || animationClass.includes('slide-fade-in')) {
-      if (element) {
-        // アニメーション前に不透明度を設定
-        element.style.opacity = '0';
-        // ハードウェアアクセラレーションを適用
-        applyHardwareAcceleration(element);
-      }
-    }
+    // アニメーションクラスを設定
+    setAnimations(prev => ({
+      ...prev,
+      [id]: animationClass
+    }));
     
-    // 実際のアニメーションを実行
-    // 次の描画フレームでアニメーションを開始（アニメーションユーティリティを使用）
-    nextFrame(() => {
+    // 指定時間後にアニメーションクラスを削除
+    const timerId = window.setTimeout(() => {
       if (!isMountedRef.current) return;
       
-      // アニメーションクラスを設定
-      setAnimations(prev => ({
-        ...prev,
-        [id]: animationClass
-      }));
+      setAnimations(prev => {
+        const newAnimations = { ...prev };
+        delete newAnimations[id];
+        return newAnimations;
+      });
       
+      // ハードウェアアクセラレーションをリセット
       if (element) {
-        // クラスの追加とリフローの強制
-        addAnimationClass(element, animationClass);
+        resetHardwareAcceleration(element);
       }
       
-      // 指定時間後にアニメーションクラスを削除
-      const timerId = window.setTimeout(() => {
-        if (!isMountedRef.current) return;
-        
-        setAnimations(prev => {
-          const newAnimations = { ...prev };
-          delete newAnimations[id];
-          return newAnimations;
-        });
-        
-        // アニメーション終了後、フェードイン系アニメーションの場合は要素が確実に表示されるようにする
-        if (element) {
-          if (animationClass.includes('fade-in') || animationClass.includes('slide-fade-in')) {
-            element.style.opacity = '1';
-            element.style.visibility = 'visible';
-          }
-          // ハードウェアアクセラレーションをリセット
-          resetHardwareAcceleration(element);
-        }
-        
-        // タイマーIDをクリア
-        delete timerRefs.current[id];
-        
-        // コールバックがあれば実行
-        if (callback) {
-          callback();
-        }
-      }, duration + 50); // 少し余裕を持たせる
+      // タイマーIDをクリア
+      delete timerRefs.current[id];
       
-      // タイマーIDを保存
-      timerRefs.current[id] = timerId;
-    });
-  }, []);
+      // コールバックがあれば実行
+      if (callback) {
+        callback();
+      }
+    }, duration);
+    
+    // タイマーIDを保存
+    timerRefs.current[id] = timerId;
+  }, [animations]);
   
-  // 各種アニメーション関数
+  // クリックアニメーション
   const triggerClickAnimation = useCallback((id: string, callback?: () => void) => {
-    triggerAnimation(id, 'animate-click', 200, callback);
+    triggerAnimation(id, 'animate-click', 150, callback);
   }, [triggerAnimation]);
   
+  // フェードインアニメーション
   const triggerFadeInAnimation = useCallback((id: string, callback?: () => void) => {
     triggerAnimation(id, 'animate-fade-in', 250, callback);
   }, [triggerAnimation]);
   
+  // フェードアウトアニメーション
   const triggerFadeOutAnimation = useCallback((id: string, callback?: () => void) => {
     triggerAnimation(id, 'animate-fade-out', 200, callback);
   }, [triggerAnimation]);
   
+  // スライドフェードインアニメーション
   const triggerSlideFadeInAnimation = useCallback((id: string, callback?: () => void) => {
     triggerAnimation(id, 'animate-slide-fade-in', 250, callback);
   }, [triggerAnimation]);
   
+  // スライドフェードアウトアニメーション
   const triggerSlideFadeOutAnimation = useCallback((id: string, callback?: () => void) => {
     triggerAnimation(id, 'animate-slide-fade-out', 200, callback);
   }, [triggerAnimation]);
   
+  // スライドダウンアニメーション
   const triggerSlideDownAnimation = useCallback((id: string, callback?: () => void) => {
     triggerAnimation(id, 'animate-slide-down', 300, callback);
   }, [triggerAnimation]);
   
+  // スライドアップアニメーション
   const triggerSlideUpAnimation = useCallback((id: string, callback?: () => void) => {
     triggerAnimation(id, 'animate-slide-up', 200, callback);
+  }, [triggerAnimation]);
+  
+  // スライド右方向アニメーション
+  const triggerSlideRightAnimation = useCallback((id: string, callback?: () => void) => {
+    triggerAnimation(id, 'animate-slide-right', 300, callback);
   }, [triggerAnimation]);
   
   // 特定の要素に適用すべきアニメーションクラスを取得
@@ -164,11 +143,7 @@ export function useAnimation() {
   // クリーンアップ関数
   const cleanupAnimations = useCallback(() => {
     Object.keys(timerRefs.current).forEach(key => {
-      if (key.endsWith('_frame')) {
-        cancelAnimationFrame(timerRefs.current[key]);
-      } else {
-        clearTimeout(timerRefs.current[key]);
-      }
+      clearTimeout(timerRefs.current[key]);
     });
     timerRefs.current = {};
     setAnimations({});
@@ -184,6 +159,7 @@ export function useAnimation() {
     triggerSlideFadeOutAnimation,
     triggerSlideDownAnimation,
     triggerSlideUpAnimation,
+    triggerSlideRightAnimation,
     getAnimationClass,
     cleanupAnimations,
   };

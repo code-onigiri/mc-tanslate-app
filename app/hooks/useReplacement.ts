@@ -19,6 +19,10 @@ interface UseReplacementReturn {
   skipCurrentReplacement: () => string | null;
   getCurrentReplacementKey: () => string | null;
   cancelReplacement: () => void;
+  showContinueConfirmation: boolean;
+  setShowContinueConfirmation: (show: boolean) => void;
+  continueToNextReplacement: () => string | null;
+  stopReplacement: () => void;
 }
 
 /**
@@ -27,6 +31,7 @@ interface UseReplacementReturn {
 export function useReplacement(): UseReplacementReturn {
   const [isReplaceMode, setIsReplaceMode] = useState(false);
   const [replaceInfo, setReplaceInfo] = useState<ReplacementInfo | null>(null);
+  const [showContinueConfirmation, setShowContinueConfirmation] = useState(false);
 
   // 現在の置換キーを取得
   const getCurrentReplacementKey = (): string | null => {
@@ -44,7 +49,6 @@ export function useReplacement(): UseReplacementReturn {
     targetData: LanguageData,
     isRegex: boolean
   ): string | null => {
-    // 置換対象のキーを見つける
     const keysToReplace = filteredKeys.filter(key => {
       if (!(key in targetData)) return false;
       
@@ -65,7 +69,6 @@ export function useReplacement(): UseReplacementReturn {
       return null;
     }
     
-    // 置換情報を設定
     setReplaceInfo({
       keys: keysToReplace,
       currentIndex: 0,
@@ -74,10 +77,8 @@ export function useReplacement(): UseReplacementReturn {
       total: keysToReplace.length
     });
     
-    // 置換モードをアクティブに
     setIsReplaceMode(true);
     
-    // 最初の置換対象キーを返す
     return keysToReplace[0] || null;
   };
 
@@ -89,11 +90,9 @@ export function useReplacement(): UseReplacementReturn {
     targetData: LanguageData,
     isRegex: boolean
   ): LanguageData => {
-    // 新しいtargetDataオブジェクトを作成して更新
     const updatedTargetData = { ...targetData };
     let replacementCount = 0;
     
-    // 検索対象のキーに対して置換を実行
     filteredKeys.forEach(key => {
       if (key in updatedTargetData) {
         const value = updatedTargetData[key];
@@ -106,7 +105,6 @@ export function useReplacement(): UseReplacementReturn {
               replacementCount++;
             }
           } catch (error) {
-            // 正規表現エラーは無視
           }
         } else {
           if (value.includes(searchText)) {
@@ -140,11 +138,18 @@ export function useReplacement(): UseReplacementReturn {
       newValue = oldValue.split(searchText).join(replaceText);
     }
     
-    // データを更新
     const updatedData = {
       ...targetData,
       [selectedKey]: newValue
     };
+
+    if (replaceInfo.currentIndex < replaceInfo.keys.length - 1) {
+      setShowContinueConfirmation(true);
+    } else {
+      alert('すべての置換が完了しました。');
+      setIsReplaceMode(false);
+      setReplaceInfo(null);
+    }
     
     return { updatedData, newValue };
   };
@@ -154,11 +159,8 @@ export function useReplacement(): UseReplacementReturn {
     if (!replaceInfo) return null;
     
     const { keys, currentIndex } = replaceInfo;
-    
-    // 次のインデックスを計算
     const nextIndex = currentIndex + 1;
     
-    // すべての置換が完了した場合
     if (nextIndex >= keys.length) {
       alert('すべての置換が完了しました。');
       setIsReplaceMode(false);
@@ -166,7 +168,6 @@ export function useReplacement(): UseReplacementReturn {
       return null;
     }
     
-    // 次のキーに進む
     setReplaceInfo({
       ...replaceInfo,
       currentIndex: nextIndex
@@ -177,7 +178,21 @@ export function useReplacement(): UseReplacementReturn {
 
   // 現在の置換をスキップ
   const skipCurrentReplacement = (): string | null => {
+    setShowContinueConfirmation(true);
+    return null;
+  };
+
+  // 確認後に次の置換に進む
+  const continueToNextReplacement = (): string | null => {
+    setShowContinueConfirmation(false);
     return nextReplacement();
+  };
+
+  // 確認後に置換を終了
+  const stopReplacement = (): void => {
+    setShowContinueConfirmation(false);
+    setIsReplaceMode(false);
+    setReplaceInfo(null);
   };
 
   // 置換をキャンセル
@@ -194,6 +209,10 @@ export function useReplacement(): UseReplacementReturn {
     applyCurrentReplacement,
     skipCurrentReplacement,
     getCurrentReplacementKey,
-    cancelReplacement
+    cancelReplacement,
+    showContinueConfirmation,
+    setShowContinueConfirmation,
+    continueToNextReplacement,
+    stopReplacement
   };
 }
