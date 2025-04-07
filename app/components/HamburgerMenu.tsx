@@ -15,6 +15,8 @@ interface HamburgerMenuProps {
   triggerSlideFadeOutAnimation: (id: string, callback?: () => void) => void;
   triggerSlideFadeInAnimation: (id: string, callback?: () => void) => void;
   getAnimationClass: (id: string) => string;
+  onProjectExport?: () => void; // プロジェクトファイル(.mcta)をエクスポートする関数
+  onProjectImport?: (file: File) => void; // プロジェクトファイル(.mcta)をインポートする関数
 }
 
 export function HamburgerMenu({
@@ -28,7 +30,9 @@ export function HamburgerMenu({
   triggerClickAnimation,
   triggerSlideFadeOutAnimation,
   triggerSlideFadeInAnimation,
-  getAnimationClass
+  getAnimationClass,
+  onProjectExport,
+  onProjectImport
 }: HamburgerMenuProps) {
   // メニューの開閉状態
   const [isOpen, setIsOpen] = useState(false);
@@ -36,6 +40,8 @@ export function HamburgerMenu({
   const [fileSettingsOpen, setFileSettingsOpen] = useState(false);
   // 「このアプリについて」ポップアップの開閉状態
   const [aboutPopupOpen, setAboutPopupOpen] = useState(false);
+  // プロジェクトファイルのインポート用のref
+  const projectImportRef = useRef<HTMLInputElement>(null);
   // メニュー要素への参照
   const menuRef = useRef<HTMLDivElement>(null);
   // ハンバーガーボタンへの参照
@@ -74,6 +80,37 @@ export function HamburgerMenu({
   // 「このアプリについて」ポップアップを閉じる
   const closeAboutPopup = () => {
     setAboutPopupOpen(false);
+  };
+
+  // プロジェクトファイルのインポートを処理する関数
+  const handleProjectImport = () => {
+    if (!onProjectImport) return;
+    
+    triggerClickAnimation('project-import-button', () => {
+      projectImportRef.current?.click();
+    });
+  };
+
+  // プロジェクトファイルのエクスポートを処理する関数
+  const handleProjectExport = () => {
+    if (!onProjectExport) return;
+    
+    triggerClickAnimation('project-export-button', () => {
+      onProjectExport();
+    });
+  };
+
+  // ファイル選択時の処理
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !onProjectImport) return;
+    
+    onProjectImport(files[0]);
+    
+    // 選択後にinputをリセット
+    if (event.target) {
+      event.target.value = '';
+    }
   };
 
   // メニュー外クリック検出用のイベントリスナー
@@ -178,11 +215,38 @@ export function HamburgerMenu({
                   href="https://github.com/code-onigiri/mc-tanslate-app"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block px-4 py-3 flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="block px-4 py-3 items-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   <span className="mr-2">🔗</span>
                   <span>GitHub</span>
                 </a>
+              </li>
+              <li>
+                <button
+                  id="project-import-button"
+                  onClick={handleProjectImport}
+                  className="w-full px-4 py-3 flex items-center text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="mr-2">📤</span>
+                  <span>プロジェクトをインポート</span>
+                </button>
+                <input
+                  type="file"
+                  ref={projectImportRef}
+                  onChange={handleFileChange}
+                  accept=".mcta"
+                  className="hidden"
+                />
+              </li>
+              <li>
+                <button
+                  id="project-export-button"
+                  onClick={handleProjectExport}
+                  className="w-full px-4 py-3 flex items-center text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="mr-2">📥</span>
+                  <span>プロジェクトをエクスポート</span>
+                </button>
               </li>
             </ul>
           </div>

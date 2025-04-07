@@ -4,6 +4,7 @@ import type { FilterType } from '../edit_page/edit';
 import type { LanguageData } from '../util/load/fileloader';
 import { highlightText, highlightRegexMatches } from '../util/highlight';
 import { hasContent } from '../util/stringUtils';
+import { TranslationFilters, type SortOrder } from './TranslationFilters';
 
 interface TranslationListProps {
   sourceData: LanguageData;
@@ -24,6 +25,8 @@ interface TranslationListProps {
   onFormatChange: (format: 'json' | 'lang') => void;
   isRegexSearch: boolean;
   setIsRegexSearch: (isRegex: boolean) => void;
+  sortOrder: SortOrder;
+  onSortChange: (order: SortOrder) => void;
 }
 
 export function TranslationList({
@@ -44,7 +47,9 @@ export function TranslationList({
   fileFormat,
   onFormatChange,
   isRegexSearch,
-  setIsRegexSearch
+  setIsRegexSearch,
+  sortOrder,
+  onSortChange
 }: TranslationListProps) {
   const listContainerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<List>(null);
@@ -282,27 +287,13 @@ export function TranslationList({
           </div>
         )}
         
-        {/* フィルタータブ */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
-          <button
-            className={`py-2 px-4 font-medium ${filterType === 'all' ? 'border-b-2 border-blue-500 text-blue-500' : 'text-gray-500 dark:text-gray-400'}`}
-            onClick={() => onFilterChange('all')}
-          >
-            すべて
-          </button>
-          <button
-            className={`py-2 px-4 font-medium ${filterType === 'translated' ? 'border-b-2 border-green-500 text-green-500' : 'text-gray-500 dark:text-gray-400'}`}
-            onClick={() => onFilterChange('translated')}
-          >
-            翻訳済み
-          </button>
-          <button
-            className={`py-2 px-4 font-medium ${filterType === 'untranslated' ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-500 dark:text-gray-400'}`}
-            onClick={() => onFilterChange('untranslated')}
-          >
-            未翻訳
-          </button>
-        </div>
+        {/* フィルターコンポーネント */}
+        <TranslationFilters 
+          filterType={filterType}
+          onFilterChange={onFilterChange}
+          sortOrder={sortOrder}
+          onSortChange={onSortChange}
+        />
       </div>
       
       <div className="bg-gray-50 dark:bg-gray-700 py-1 px-2 text-sm flex justify-between border-b border-gray-200 dark:border-gray-700">

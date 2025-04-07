@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { TranslationEditor } from '../components/TranslationEditor';
 import { TranslationList } from '../components/TranslationList';
 import { loadLanguageData, saveLanguageData, type LanguageData } from '../util/load/fileloader';
+import { exportProject, importProject } from '../util/project/projectManager';
 import { useTranslationFilters } from '../hooks/useTranslationFilters';
 import { useTheme } from '../hooks/useTheme';
 import { useReplacement } from '../hooks/useReplacement';
 import { useAnimation } from '../hooks/useAnimation';
 import { SettingsDropdown } from '../components/SettingsDropdown';
 import { HamburgerMenu } from '../components/HamburgerMenu';
+import type { SortOrder } from '../components/TranslationFilters';
 
 // フィルタータイプの定義
 export type FilterType = 'all' | 'translated' | 'untranslated';
@@ -27,6 +29,8 @@ function EditPage() {
     const [editedValue, setEditedValue] = useState('');
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [isRegexSearch, setIsRegexSearch] = useState(false);
+    // 並び替え状態
+    const [sortOrder, setSortOrder] = useState<SortOrder>('none');
     
     // UI設定とアニメーションの状態
     const [showSettings, setShowSettings] = useState(false);
@@ -56,7 +60,14 @@ function EditPage() {
     } = useAnimation();
     
     // フィルタリングロジックをカスタムフックに委譲
-    const filteredKeys = useTranslationFilters(sourceData, targetData, searchTerm, filterType, isRegexSearch);
+    const filteredKeys = useTranslationFilters(
+        sourceData, 
+        targetData, 
+        searchTerm, 
+        filterType, 
+        isRegexSearch,
+        sortOrder
+    );
 
     // 設定メニュー外のクリックで閉じる
     useEffect(() => {
@@ -193,6 +204,58 @@ function EditPage() {
         saveLanguageData(targetData, fileFormat, fileName);
     };
 
+    // プロジェクトファイル関連の処理
+    const handleProjectExport = async () => {
+        if (!sourceData || !targetData) {
+            setError('エクスポートするには翻訳元と翻訳先の両方のデータが必要です');
+            return;
+        }
+
+        const baseName = targetFileName 
+            ? targetFileName.split('.')[0] 
+            : 'minecraft_translation_project';
+
+        const userFileName = window.prompt('エクスポートするファイル名を入力してください', baseName);
+        if (!userFileName) {
+            setError('ファイル名が入力されていません');
+            return;
+        }
+
+        try {
+            await exportProject(
+                sourceData,
+                targetData,
+                fileFormat, // 現在のfileFormatを翻訳元と翻訳先の両方に使用
+                fileFormat,
+                userFileName
+            );
+        } catch (err) {
+            setError(`プロジェクトのエクスポートに失敗しました: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    };
+
+    const handleProjectImport = async (file: File) => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const { sourceData: newSourceData, targetData: newTargetData, targetFormat } = await importProject(file);
+            
+            setSourceData(newSourceData);
+            setTargetData(newTargetData);
+            setFileFormat(targetFormat);
+            
+            // ファイル名を設定（プロジェクトファイル名から拡張子を除いたもの + 形式の拡張子）
+            const baseName = file.name.split('.')[0];
+            setTargetFileName(`${baseName}.${targetFormat}`);
+            
+        } catch (err) {
+            setError(`プロジェクトのインポートに失敗しました: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // 編集関連の処理
     const handleSelectKey = (key: string) => {
         setSelectedKey(key);
@@ -242,6 +305,11 @@ function EditPage() {
     // フィルター変更
     const handleFilterChange = (newFilter: FilterType) => {
         setFilterType(newFilter);
+    };
+
+    // ソート順変更
+    const handleSortChange = (newSortOrder: SortOrder) => {
+        setSortOrder(newSortOrder);
     };
 
     // 進捗率計算
@@ -330,6 +398,8 @@ function EditPage() {
                             triggerSlideFadeOutAnimation={triggerSlideFadeOutAnimation}
                             triggerSlideFadeInAnimation={triggerSlideFadeInAnimation}
                             getAnimationClass={getAnimationClass}
+                            onProjectExport={handleProjectExport}
+                            onProjectImport={handleProjectImport}
                         />
                         
                         <h1 className="text-2xl font-bold animate-fade-in ml-2">Minecraft 翻訳エディタ</h1>
@@ -420,13 +490,17 @@ function EditPage() {
                             onFormatChange={handleFormatChange}
                             isRegexSearch={isRegexSearch}
                             setIsRegexSearch={setIsRegexSearch}
+                            sortOrder={sortOrder}
+                            onSortChange={handleSortChange}
                         />
                     </div>
                 </main>
             ) : (
+                <>
                 <div className="flex justify-center items-center h-[60vh] text-lg text-gray-500 dark:text-gray-400 animate-fade-in">
                     翻訳元と翻訳先のJSONまたは.langファイルを選択してください。
                 </div>
+                </>
             )}
         </div>
     );
