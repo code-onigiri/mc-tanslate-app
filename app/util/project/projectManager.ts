@@ -51,7 +51,7 @@ export async function exportProject(
     saveAs(content, fullFilename);
   } catch (error) {
     console.error('プロジェクトのエクスポート中にエラーが発生しました:', error);
-    throw new Error(`プロジェクトのエクスポートに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -120,7 +120,7 @@ export async function importProject(file: File): Promise<{
     };
   } catch (error) {
     console.error('プロジェクトのインポート中にエラーが発生しました:', error);
-    throw new Error(`プロジェクトのインポートに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

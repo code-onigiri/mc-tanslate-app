@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FilterType } from '../edit_page/edit';
+import type { FilterType } from '../edit_page/types';
 
 // ソート順を表す型定義
 export type SortOrder = 'none' | 'keyAsc' | 'keyDesc' | 'sourceAsc' | 'sourceDesc' | 'targetAsc' | 'targetDesc';

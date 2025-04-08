@@ -1,4 +1,6 @@
-import { useCallback, useState, useRef } from 'react';
+import { useState } from 'react';
+import { useFileSelection } from '../hooks/useFileSelection';
+import { FileDropZone } from './FileDropZone';
 
 interface FileUploaderProps {
   onSourceFileSelect: (file: File) => void;
@@ -22,53 +24,22 @@ export function FileUploader({
   triggerClickAnimation
 }: FileUploaderProps) {
   const [createNew, setCreateNew] = useState(false);
-  const sourceFileInputRef = useRef<HTMLInputElement>(null);
-  const targetFileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedSourceFileName, setSelectedSourceFileName] = useState<string | null>(null);
-
-  // ドラッグ&ドロップ関連の状態
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const dragCounterRef = useRef<number>(0);
-
-  const handleSourceFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-    const file = event.target.files[0];
-    setSelectedSourceFileName(file.name);
-    
-    // ファイル拡張子からフォーマットを自動設定
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (extension === 'lang') {
-      onFormatChange('lang');
-    } else {
-      onFormatChange('json');
-    }
-    
-    onSourceFileSelect(file);
-    // ファイル選択後にファイル入力をリセット
-    if (sourceFileInputRef.current) {
-      sourceFileInputRef.current.value = '';
-    }
-  }, [onSourceFileSelect, onFormatChange]);
-
-  const handleTargetFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-    const file = event.target.files[0];
-    onTargetFileSelect(file);
-    setCreateNew(false); // ファイルを選択したら新規作成モードをオフに
-    
-    // ファイル拡張子からフォーマットを自動設定
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    if (extension === 'lang') {
-      onFormatChange('lang');
-    } else {
-      onFormatChange('json');
-    }
-    
-    // ファイル選択後にファイル入力をリセット
-    if (targetFileInputRef.current) {
-      targetFileInputRef.current.value = '';
-    }
-  }, [onTargetFileSelect, onFormatChange]);
+  
+  // カスタムフックを使用してファイル選択操作を管理
+  const sourceFileSelection = useFileSelection(
+    (file) => {
+      onSourceFileSelect(file);
+    }, 
+    onFormatChange
+  );
+  
+  const targetFileSelection = useFileSelection(
+    (file) => {
+      onTargetFileSelect(file);
+      setCreateNew(false);
+    }, 
+    onFormatChange
+  );
 
   // 新規作成ボタンのクリックアニメーション
   const handleCreateNewClick = () => {
@@ -84,46 +55,6 @@ export function FileUploader({
     onFormatChange(newFormat);
   };
 
-  // ドラッグ&ドロップイベントハンドラ
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current++;
-    setIsDraggingOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current--;
-    if (dragCounterRef.current === 0) {
-      setIsDraggingOver(false);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent, isSource: boolean) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-    dragCounterRef.current = 0;
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      if (isSource) {
-        setSelectedSourceFileName(file.name);
-        onSourceFileSelect(file);
-      } else {
-        onTargetFileSelect(file);
-        setCreateNew(false);
-      }
-    }
-  };
-
   return (
     <div className="mb-2">
       <div className="border-b border-gray-200 dark:border-gray-700 pb-2 mb-1">
@@ -134,35 +65,13 @@ export function FileUploader({
                 翻訳元ファイル
                 <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">(en_us.json/.lang)</span>
               </label>
-              <div 
-                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                  isDraggingOver ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-700'
-                } hover:border-blue-400 dark:hover:border-blue-500`}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, true)}
-              >
-                <input 
-                  type="file" 
-                  id="source-file" 
-                  accept=".json,.lang"
-                  onChange={handleSourceFileChange} 
-                  disabled={isLoading}
-                  ref={sourceFileInputRef}
-                  className="hidden"
-                />
-                <label 
-                  htmlFor="source-file" 
-                  className="cursor-pointer flex flex-col items-center justify-center py-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400 dark:text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">クリックまたはドラッグ&ドロップ</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-500 mt-1">(.json または .lang)</span>
-                </label>
-              </div>
+              <FileDropZone 
+                id="source-file"
+                onFileSelect={onSourceFileSelect}
+                fileInputRef={sourceFileSelection.fileInputRef}
+                onChange={sourceFileSelection.handleFileChange}
+                isLoading={isLoading}
+              />
             </div>
             
             <div className="flex flex-col gap-2">
@@ -184,39 +93,14 @@ export function FileUploader({
                   新規作成
                 </button>
               </div>
-              <div 
-                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                  createNew 
-                    ? 'opacity-50 cursor-not-allowed border-gray-300 dark:border-gray-700'
-                    : (isDraggingOver 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-gray-300 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500')
-                }`}
-                onDragEnter={!createNew ? handleDragEnter : undefined}
-                onDragLeave={!createNew ? handleDragLeave : undefined}
-                onDragOver={!createNew ? handleDragOver : undefined}
-                onDrop={!createNew ? (e) => handleDrop(e, false) : undefined}
-              >
-                <input 
-                  type="file" 
-                  id="target-file" 
-                  accept=".json,.lang"
-                  onChange={handleTargetFileChange}
-                  disabled={isLoading || createNew}
-                  ref={targetFileInputRef}
-                  className="hidden"
-                />
-                <label 
-                  htmlFor={!createNew ? "target-file" : undefined} 
-                  className={`flex flex-col items-center justify-center py-2 ${createNew ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400 dark:text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  <span className="text-gray-600 dark:text-gray-400 font-medium">クリックまたはドラッグ&ドロップ</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-500 mt-1">(.json または .lang)</span>
-                </label>
-              </div>
+              <FileDropZone 
+                id="target-file"
+                onFileSelect={onTargetFileSelect}
+                fileInputRef={targetFileSelection.fileInputRef}
+                onChange={targetFileSelection.handleFileChange}
+                isLoading={isLoading}
+                disabled={createNew}
+              />
               {createNew && (
                 <div className="flex items-center gap-3 mt-0 text-sm text-green-600 dark:text-green-400 animate-fade-in">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -241,9 +125,9 @@ export function FileUploader({
           </div>
         </div>
         <div className="ml-auto flex flex-nowrap gap-2 items-center text-sm text-gray-600 dark:text-gray-400 overflow-hidden">
-          {selectedSourceFileName && (
+          {sourceFileSelection.selectedFileName && (
             <span className="whitespace-nowrap animate-fade-in">
-              翻訳元: <span className="font-medium">{selectedSourceFileName}</span>
+              翻訳元: <span className="font-medium">{sourceFileSelection.selectedFileName}</span>
             </span>
           )}
           {selectedTargetFileName && (
